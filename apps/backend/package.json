@@ -8,7 +8,14 @@
     "dev:watch-all": "node --watch-path=./ index.js",
     "start": "node index.js",
     "lint": "eslint .",
-    "seed": "node scripts/seedProperties.js"
+    "seed": "node scripts/seedProperties.js",
+    "db:init": "node scripts/initDatabase.js",
+    "create:admin": "node scripts/createAdmin.js",
+    "create:admin:manual": "node scripts/createAdminManually.js",
+    "set:admin:claims": "node scripts/setFirebaseAdminClaims.js",
+    "set:env:admin:claims": "node -e \"process.argv[2] = process.env.ADMIN_FIREBASE_UID; require('./scripts/setFirebaseAdminClaims.js')\"",
+    "get:token": "node scripts/getAccessToken.js",
+    "get:token:direct": "node scripts/getAccessTokenDirect.js"
   },
   "dependencies": {
     "axios": "^1.6.2",
@@ -16,6 +23,7 @@
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
     "firebase-admin": "^11.11.1",
+    "googleapis": "^129.0.0",
     "mongodb": "^6.16.0",
     "mongoose": "^8.14.1"
   },

@@ -1,97 +1,45 @@
 const express = require('express');
 const { getAuth } = require('firebase-admin/auth');
+const User = require('../models/User');
 const router = express.Router();
 
-// Verify token and return user info
-router.get('/verify', async (req, res) => {
+// Register a new user
+router.post('/register', async (req, res) => {
   try {
+    // Verify the Firebase token
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
 
     const decodedToken = await getAuth().verifyIdToken(token);
-    const userRecord = await getAuth().getUser(decodedToken.uid);
-    
-    res.json({
-      uid: userRecord.uid,
-      email: userRecord.email,
-      emailVerified: userRecord.emailVerified,
-      displayName: userRecord.displayName,
-      photoURL: userRecord.photoURL,
-      phoneNumber: userRecord.phoneNumber,
-      disabled: userRecord.disabled,
-      metadata: {
-        creationTime: userRecord.metadata.creationTime,
-        lastSignInTime: userRecord.metadata.lastSignInTime,
-      },
-    });
-  } catch (error) {
-    console.error('Token verification error:', error);
-    res.status(401).json({ error: 'Invalid token', details: error.message });
-  }
-});
+    const { uid, email, name, picture } = decodedToken;
 
-// Get user by ID (admin only)
-router.get('/user/:uid', async (req, res) => {
-  try {
-    const { uid } = req.params;
-    // This route should be protected by an admin middleware in production
-    const userRecord = await getAuth().getUser(uid);
+    // Check if user already exists
+    let user = await User.findOne({ firebaseUid: uid });
     
-    res.json({
-      uid: userRecord.uid,
-      email: userRecord.email,
-      emailVerified: userRecord.emailVerified,
-      displayName: userRecord.displayName,
-      photoURL: userRecord.photoURL,
-      metadata: {
-        creationTime: userRecord.metadata.creationTime,
-        lastSignInTime: userRecord.metadata.lastSignInTime,
-      },
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(404).json({ error: 'User not found', details: error.message });
-  }
-});
-
-// Update user profile
-router.post('/update-profile', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+    if (user) {
+      return res.status(400).json({ error: 'User already exists' });
     }
 
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const { displayName, photoURL, phoneNumber } = req.body;
-    
-    const updateData = {};
-    if (displayName !== undefined) updateData.displayName = displayName;
-    if (photoURL !== undefined) updateData.photoURL = photoURL;
-    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
-    
-    await getAuth().updateUser(decodedToken.uid, updateData);
-    const updatedUser = await getAuth().getUser(decodedToken.uid);
-    
-    res.json({
-      success: true,
-      user: {
-        uid: updatedUser.uid,
-        email: updatedUser.email,
-        displayName: updatedUser.displayName,
-        photoURL: updatedUser.photoURL,
-        phoneNumber: updatedUser.phoneNumber,
-      },
+    // Create new user in MongoDB
+    user = new User({
+      firebaseUid: uid,
+      email,
+      displayName: name || req.body.displayName,
+      photoURL: picture || req.body.photoURL,
+      phoneNumber: req.body.phoneNumber
     });
+
+    await user.save();
+    res.status(201).json(user);
   } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(400).json({ error: 'Failed to update profile', details: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Error registering user' });
   }
 });
 
-// Get current user info
+// Get current user profile
 router.get('/me', async (req, res) => {
   try {
     const token = req.headers.authorization?.split('Bearer ')[1];
@@ -100,19 +48,128 @@ router.get('/me', async (req, res) => {
     }
 
     const decodedToken = await getAuth().verifyIdToken(token);
-    const userRecord = await getAuth().getUser(decodedToken.uid);
-    
-    res.json({
-      uid: userRecord.uid,
-      email: userRecord.email,
-      emailVerified: userRecord.emailVerified,
-      displayName: userRecord.displayName,
-      photoURL: userRecord.photoURL,
-      phoneNumber: userRecord.phoneNumber,
-    });
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
   } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(401).json({ error: 'Authentication failed', details: error.message });
+    console.error('Error getting user profile:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update user profile
+router.put('/me', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decodedToken = await getAuth().verifyIdToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Only update allowed fields
+    const allowedUpdates = ['displayName', 'phoneNumber'];
+    const updates = {};
+    
+    for (const field of allowedUpdates) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    // Update the user
+    Object.assign(user, updates);
+    await user.save();
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add a property to favorites
+router.post('/favorites/:propertyId', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decodedToken = await getAuth().verifyIdToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const propertyId = req.params.propertyId;
+    
+    // Check if already in favorites
+    if (user.favorites.includes(propertyId)) {
+      return res.status(400).json({ error: 'Property already in favorites' });
+    }
+
+    user.favorites.push(propertyId);
+    await user.save();
+
+    res.json({ message: 'Property added to favorites', favorites: user.favorites });
+  } catch (error) {
+    console.error('Error adding favorite:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Remove a property from favorites
+router.delete('/favorites/:propertyId', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decodedToken = await getAuth().verifyIdToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const propertyId = req.params.propertyId;
+    
+    // Remove from favorites
+    user.favorites = user.favorites.filter(id => id.toString() !== propertyId);
+    await user.save();
+
+    res.json({ message: 'Property removed from favorites', favorites: user.favorites });
+  } catch (error) {
+    console.error('Error removing favorite:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin route: Get all users (protected by middleware)
+router.get('/users', async (req, res) => {
+  try {
+    // Check if admin (should be done in middleware)
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const users = await User.find({});
+    res.json(users);
+  } catch (error) {
+    console.error('Error getting users:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
