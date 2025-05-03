@@ -6,11 +6,11 @@ const router = express.Router();
 const MAPBOX_API_URL = process.env.MAPBOX_API_URL || 'https://api.mapbox.com';
 
 // Get Mapbox access token from environment variables
-const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_ACCESS_TOKEN;
+const MAPBOX_API_KEY = process.env.MAPBOX_API_KEY;
 
 // Error handler for missing token
-if (!MAPBOX_ACCESS_TOKEN) {
-  console.warn('MAPBOX_ACCESS_TOKEN not found in environment variables');
+if (!MAPBOX_API_KEY) {
+  console.warn('MAPBOX_API_KEY not found in environment variables');
 }
 
 // Geocoding endpoint - convert addresses to coordinates
@@ -25,7 +25,7 @@ router.get('/geocode', async (req, res) => {
       `${MAPBOX_API_URL}/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`,
       {
         params: {
-          access_token: MAPBOX_ACCESS_TOKEN,
+          access_token: MAPBOX_API_KEY,
           limit: 5,
         },
       }
@@ -53,7 +53,7 @@ router.get('/reverse-geocode', async (req, res) => {
       `${MAPBOX_API_URL}/geocoding/v5/mapbox.places/${longitude},${latitude}.json`,
       {
         params: {
-          access_token: MAPBOX_ACCESS_TOKEN,
+          access_token: MAPBOX_API_KEY,
           limit: 1,
         },
       }
@@ -81,7 +81,7 @@ router.get('/directions', async (req, res) => {
       `${MAPBOX_API_URL}/directions/v5/mapbox/${profile}/${coordinates}`,
       {
         params: {
-          access_token: MAPBOX_ACCESS_TOKEN,
+          access_token: MAPBOX_API_KEY,
           geometries: 'geojson',
           steps: true,
         },
@@ -110,7 +110,7 @@ router.get('/isochrone', async (req, res) => {
       `${MAPBOX_API_URL}/isochrone/v1/mapbox/driving/${longitude},${latitude}`,
       {
         params: {
-          access_token: MAPBOX_ACCESS_TOKEN,
+          access_token: MAPBOX_API_KEY,
           contours_minutes: contours_minutes || '15,30,45',
           polygons: true,
         },
