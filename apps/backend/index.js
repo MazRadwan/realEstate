@@ -26,7 +26,7 @@ connectDB()
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://real-estate-maz-api-map.netlify.app'
+    'https://constructor-real-estate.netlify.app'
   ],
   credentials: true
 }));
