@@ -2,8 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { initializeApp, cert } = require('firebase-admin/app');
-const { getAuth } = require('firebase-admin/auth');
 const connectDB = require('./config/db');
+
+// Import middleware
+const { authMiddleware, requireAdmin } = require('./middleware/auth');
 
 // Routes
 const mapboxRoutes = require('./routes/mapbox');
@@ -24,14 +26,18 @@ connectDB()
 app.use(cors());
 app.use(express.json());
 
-// Firebase Admin initialization (disabled until serviceAccount is set up)
-let firebaseAdmin;
+// Firebase Admin initialization
 try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    const serviceAccount = JSON.parse(
-      process.env.FIREBASE_SERVICE_ACCOUNT
-    );
-    firebaseAdmin = initializeApp({
+    const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
+    const serviceAccount = JSON.parse(serviceAccountStr);
+    
+    // Fix private key format if needed
+    if (serviceAccount.private_key && serviceAccount.private_key.includes('\\n')) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+    
+    initializeApp({
       credential: cert(serviceAccount)
     });
     console.log('Firebase Admin initialized successfully');
@@ -42,36 +48,9 @@ try {
   console.error('Error initializing Firebase Admin:', error);
 }
 
-// Auth middleware
-const authMiddleware = async (req, res, next) => {
-  // Skip auth in development mode
-  if (isDevelopment) {
-    console.warn('Auth check skipped in development mode');
-    return next();
-  }
-
-  if (!firebaseAdmin) {
-    return res.status(401).json({ error: 'Firebase Admin not initialized' });
-  }
-
-  try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized: No token provided' });
-    }
-
-    const decodedToken = await getAuth().verifyIdToken(token);
-    req.user = decodedToken;
-    next();
-  } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(401).json({ error: 'Unauthorized: Invalid token' });
-  }
-};
-
 // Routes
-// In development, don't require authentication for Mapbox routes
-if (isDevelopment) {
+// In development, don't require authentication for some routes if configured
+if (isDevelopment && process.env.SKIP_AUTH_IN_DEV === 'true') {
   app.use('/api/mapbox', mapboxRoutes);
   app.use('/api/properties', propertyRoutes);
   console.log('API routes accessible without authentication in development mode');
@@ -81,6 +60,7 @@ if (isDevelopment) {
 }
 
 app.use('/api/auth', authRoutes);
+console.log('DEBUG: Mounted auth routes at /api/auth');
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -90,14 +70,34 @@ app.get('/api/health', (req, res) => {
     mode: isDevelopment ? 'development' : 'production',
     services: {
       mongodb: 'connected',
-      mapbox: process.env.MAPBOX_API_KEY ? 'configured' : 'missing'
+      mapbox: process.env.MAPBOX_API_KEY ? 'configured' : 'missing',
+      firebase: process.env.FIREBASE_SERVICE_ACCOUNT ? 'configured' : 'missing'
     }
   });
 });
 
 // Protected route example
 app.get('/api/protected', authMiddleware, (req, res) => {
-  res.json({ message: 'This is a protected route', user: req.user });
+  res.json({ 
+    message: 'This is a protected route', 
+    user: {
+      id: req.user._id,
+      email: req.user.email,
+      role: req.user.role
+    }
+  });
+});
+
+// Admin-only route example
+app.get('/api/admin', authMiddleware, requireAdmin, (req, res) => {
+  res.json({ 
+    message: 'This is an admin-only route', 
+    user: {
+      id: req.user._id,
+      email: req.user.email,
+      role: req.user.role
+    }
+  });
 });
 
 // Start server

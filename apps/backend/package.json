@@ -8,7 +8,9 @@
     "dev:watch-all": "node --watch-path=./ index.js",
     "start": "node index.js",
     "lint": "eslint .",
-    "seed": "node scripts/seedProperties.js"
+    "seed": "node scripts/seedProperties.js",
+    "db:init": "node scripts/initDatabase.js",
+    "test:rbac": "node scripts/testRBAC.js"
   },
   "dependencies": {
     "axios": "^1.6.2",
@@ -16,6 +18,7 @@
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
     "firebase-admin": "^11.11.1",
+    "googleapis": "^129.0.0",
     "mongodb": "^6.16.0",
     "mongoose": "^8.14.1"
   },
