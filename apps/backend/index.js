@@ -60,6 +60,7 @@ if (isDevelopment && process.env.SKIP_AUTH_IN_DEV === 'true') {
 }
 
 app.use('/api/auth', authRoutes);
+console.log('DEBUG: Mounted auth routes at /api/auth');
 
 // Health check route
 app.get('/api/health', (req, res) => {

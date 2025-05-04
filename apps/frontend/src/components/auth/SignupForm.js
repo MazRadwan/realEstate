@@ -29,7 +29,15 @@ export default function SignupForm({ onSuccess }) {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      await signup(data.email, data.password, data.name);
+      // Sign up the user in Firebase
+      const result = await signup(data.email, data.password, data.name);
+      
+      // Force refresh the Firebase ID token to get the latest profile info
+      const idToken = await result.user.getIdToken(true);
+
+      // Register the user in MongoDB via the backend API
+      await userService.registerUser(idToken, { displayName: data.name });
+      
       toast.success('Account created successfully!');
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -47,14 +55,13 @@ export default function SignupForm({ onSuccess }) {
       // Firebase Google authentication
       const result = await signInWithGoogle();
       
-      // Get the ID token
-      const idToken = await result.user.getIdToken();
+      // Force refresh the Firebase ID token to get the latest profile info
+      const idToken = await result.user.getIdToken(true);
       
       // Register user in MongoDB if not already registered
       try {
         await userService.registerUser(idToken, {
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL
+          displayName: result.user.displayName
         });
       } catch (err) {
         // Ignore if user already exists

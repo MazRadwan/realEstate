@@ -6,6 +6,8 @@ const router = express.Router();
 
 // Register a new user
 router.post('/register', async (req, res) => {
+  // DEBUG: Log incoming registration request
+  console.log('DEBUG: Registration request received with headers:', req.headers);
   try {
     // Verify the Firebase token
     const token = req.headers.authorization?.split('Bearer ')[1];

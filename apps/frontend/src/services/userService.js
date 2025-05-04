@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 /**
  * Service for user-related API calls
@@ -12,7 +12,8 @@ const userService = {
    */
   registerUser: async (idToken, userData) => {
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      console.log('Registering user at:', `${API_BASE}/api/auth/register`);
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -22,8 +23,17 @@ const userService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to register user');
+        // Check content type before parsing as JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to register user');
+        } else {
+          // Handle non-JSON responses (likely HTML error pages)
+          const text = await response.text();
+          console.error('Non-JSON error response:', text.substring(0, 100) + '...');
+          throw new Error(`Server error (${response.status}): Backend server may not be running correctly`);
+        }
       }
 
       return await response.json();
@@ -40,15 +50,22 @@ const userService = {
    */
   getUserProfile: async (idToken) => {
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${idToken}`
         }
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get user profile');
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to get user profile');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text.substring(0, 100) + '...');
+          throw new Error(`Server error (${response.status}): Backend server may not be running correctly`);
+        }
       }
 
       return await response.json();
@@ -66,7 +83,7 @@ const userService = {
    */
   updateUserProfile: async (idToken, profileData) => {
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -76,8 +93,15 @@ const userService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile');
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update profile');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text.substring(0, 100) + '...');
+          throw new Error(`Server error (${response.status}): Backend server may not be running correctly`);
+        }
       }
 
       return await response.json();
