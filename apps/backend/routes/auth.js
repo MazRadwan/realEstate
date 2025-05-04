@@ -1,6 +1,7 @@
 const express = require('express');
 const { getAuth } = require('firebase-admin/auth');
 const User = require('../models/User');
+const { authMiddleware, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 // Register a new user
@@ -39,42 +40,22 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Get current user profile
-router.get('/me', async (req, res) => {
+// Get current user profile (protected)
+router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json(user);
+    // User is already available in req.user from authMiddleware
+    res.json(req.user);
   } catch (error) {
     console.error('Error getting user profile:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Update user profile
-router.put('/me', async (req, res) => {
+// Update user profile (protected)
+router.put('/me', authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    // User is already available in req.user from authMiddleware
+    const user = req.user;
 
     // Only update allowed fields
     const allowedUpdates = ['displayName', 'phoneNumber'];
@@ -97,21 +78,10 @@ router.put('/me', async (req, res) => {
   }
 });
 
-// Add a property to favorites
-router.post('/favorites/:propertyId', async (req, res) => {
+// Add a property to favorites (protected)
+router.post('/favorites/:propertyId', authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
+    const user = req.user;
     const propertyId = req.params.propertyId;
     
     // Check if already in favorites
@@ -129,21 +99,10 @@ router.post('/favorites/:propertyId', async (req, res) => {
   }
 });
 
-// Remove a property from favorites
-router.delete('/favorites/:propertyId', async (req, res) => {
+// Remove a property from favorites (protected)
+router.delete('/favorites/:propertyId', authMiddleware, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
+    const user = req.user;
     const propertyId = req.params.propertyId;
     
     // Remove from favorites
@@ -157,18 +116,38 @@ router.delete('/favorites/:propertyId', async (req, res) => {
   }
 });
 
-// Admin route: Get all users (protected by middleware)
-router.get('/users', async (req, res) => {
+// Admin route: Get all users (admin only)
+router.get('/users', authMiddleware, requireAdmin, async (req, res) => {
   try {
-    // Check if admin (should be done in middleware)
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
-    
     const users = await User.find({});
     res.json(users);
   } catch (error) {
     console.error('Error getting users:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin route: Update user role (admin only)
+router.put('/users/:userId/role', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { role } = req.body;
+    
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+    
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    user.role = role;
+    await user.save();
+    
+    res.json({ message: 'User role updated successfully', user });
+  } catch (error) {
+    console.error('Error updating user role:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
