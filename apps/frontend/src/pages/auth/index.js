@@ -23,18 +23,14 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Real Estate App</h1>
-        </div>
-
+      <div className="w-full max-w-md mt-20">
         <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setTab('login')}
               className={`w-1/2 py-4 text-center font-medium ${
                 tab === 'login'
-                  ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400'
+                  ? 'text-orange-500 border-b-2 border-orange-500 dark:text-orange-400 dark:border-orange-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
             >
@@ -44,7 +40,7 @@ export default function AuthPage() {
               onClick={() => setTab('signup')}
               className={`w-1/2 py-4 text-center font-medium ${
                 tab === 'signup'
-                  ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400'
+                  ? 'text-orange-500 border-b-2 border-orange-500 dark:text-orange-400 dark:border-orange-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
             >
