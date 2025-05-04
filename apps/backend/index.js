@@ -23,7 +23,13 @@ connectDB()
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://real-estate-maz-api-map.netlify.app'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Firebase Admin initialization
