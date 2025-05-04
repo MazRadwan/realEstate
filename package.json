@@ -1,6 +1,7 @@
 {
   "name": "real-estate-monorepo",
   "version": "1.0.0",
+  "packageManager": "npm@10.8.2",
   "private": true,
   "workspaces": [
     "apps/*",
