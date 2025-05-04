@@ -1,0 +1,19 @@
+[build]
+  base = "apps/frontend"
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NEXT_PUBLIC_API_URL = "https://backend-api-134222868469.us-central1.run.app"
+  NEXT_PUBLIC_FIREBASE_API_KEY = "AIzaSyDDz9pkYXvXvd-D8DQHrY7tz3RnzIfKjug"
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "real-estate-e675c.firebaseapp.com"
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID = "real-estate-e675c"
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "real-estate-e675c.firebasestorage.app"
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "134222868469"
+  NEXT_PUBLIC_FIREBASE_APP_ID = "1:134222868469:web:134675b635b36598fdfabc"
+  NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID = "G-1PH25QDMX8"
+  NEXT_PUBLIC_MAPBOX_TOKEN = "pk.eyJ1IjoibWF6cmFkd2FuIiwiYSI6ImNtYTZ1d200aTB5N3AybHE5dmp4N2thMjkifQ.ULQ1j33Ftpshz4E1F40Kyw"
+  NEXT_PUBLIC_USE_FIREBASE_EMULATORS = "false" 
