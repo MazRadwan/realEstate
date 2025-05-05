@@ -31,7 +31,7 @@ function AppContent({ Component, pageProps }) {
       if (!isDevelopment) return;
       
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/health`);
+        const response = await fetch('/api/health');
         if (response.ok) {
           setBackendStatus('online');
         } else {
