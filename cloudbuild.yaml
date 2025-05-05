@@ -23,4 +23,8 @@ steps:
       - '--allow-unauthenticated'
 
 images:
-  - 'gcr.io/$PROJECT_ID/backend-api' 
+  - 'gcr.io/$PROJECT_ID/backend-api'
+
+# Logging configuration
+options:
+  logging: CLOUD_LOGGING_ONLY 
