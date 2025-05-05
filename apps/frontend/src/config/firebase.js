@@ -90,13 +90,16 @@ try {
   console.log('Firebase initialized successfully');
 } catch (error) {
   console.warn('Firebase initialization error:', error.message);
-  if (isDevelopment) {
-    console.warn('Using dummy Firebase in development mode');
-    auth = dummyAuth;
-    db = dummyFirestore;
-    storage = dummyStorage;
-  } else {
-    throw error; // rethrow in production
+  // Use dummy Firebase in development OR production if there's an initialization error
+  // This prevents crashes in production due to misconfiguration
+  console.warn('Using dummy Firebase fallback');
+  auth = dummyAuth;
+  db = dummyFirestore;
+  storage = dummyStorage;
+  
+  // In production, log the error but don't crash the app
+  if (!isDevelopment) {
+    console.error('Production Firebase initialization failed:', error);
   }
 }
 
