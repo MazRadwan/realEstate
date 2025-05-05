@@ -2,6 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Use static HTML export instead of serverless functions
+  output: 'export',
+  
+  // Remove serverless target as it's not needed with static export
+  // target: 'serverless',
+  
   // Configure image domains for external images
   images: {
     domains: [
@@ -15,24 +21,12 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    unoptimized: true, // Required for static export
   },
   
   // API rewrites to proxy requests to the backend
   async rewrites() {
-    // Use environment variable for API URL, falling back to localhost for development
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-    
-    // Only apply rewrites in development
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        {
-          source: '/api/:path*',
-          destination: 'http://localhost:5001/api/:path*' // Proxy to backend in development
-        }
-      ];
-    }
-    
-    // In production, don't rewrite API calls - let them go directly to the backend URL
+    // Don't use rewrites with static export
     return [];
   }
 }
