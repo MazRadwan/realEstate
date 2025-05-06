@@ -114,6 +114,12 @@ export function PropertyProvider({ children }) {
     }
   }, []);
   
+  // Fetch 'Home' properties on initial mount
+  useEffect(() => {
+    fetchPropertiesByType(PROPERTY_TYPES.HOME, 1);
+    // eslint-disable-next-line
+  }, []);
+  
   // Context value - only exposing what's needed for now
   const value = {
     // The actual data will be handled by the existing components for now
