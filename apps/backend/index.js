@@ -14,13 +14,18 @@ const propertyRoutes = require('./routes/properties');
 
 // Initialize Express
 const app = express();
-const PORT = process.env.PORT || 5001;
+// Cloud Run environment variable for port, fallback to 8080
+const PORT = process.env.PORT || 8080;
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Connect to MongoDB
 connectDB()
   .then(() => console.log('MongoDB connection initialized'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch(err => {
+    console.error('MongoDB connection error details:', err);
+    // Continue starting the server even if DB fails
+    console.log('Continuing startup despite DB connection failure');
+  });
 
 // Middleware
 app.use(cors({

@@ -12,12 +12,27 @@ if (!MONGODB_URI) {
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(MONGODB_URI);
-    console.log(`MongoDB connected: ${conn.connection.host}`);
+    // Log connection string (with password redacted)
+    const connectionString = process.env.MONGODB_URI || '';
+    const redactedUri = connectionString.replace(/\/\/([^:]+):([^@]+)@/, '//\$1:****@');
+    console.log(`Attempting MongoDB connection to: ${redactedUri}`);
+    
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      // These options may need adjustment based on your MongoDB version
+      serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    });
+    
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
-  } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+  } catch (err) {
+    console.error('MongoDB connection error:');
+    console.error(`- Name: ${err.name}`);
+    console.error(`- Message: ${err.message}`);
+    console.error(`- Code: ${err.code || 'N/A'}`);
+    
+    // Continue without db connection
+    return Promise.reject(err);
   }
 };
 
