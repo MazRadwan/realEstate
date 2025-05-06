@@ -10,6 +10,32 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import userService from '../services/userService';
+
+// Add this debug function to the global window object for console access
+if (typeof window !== 'undefined') {
+  window.debugRegisterUser = async () => {
+    try {
+      if (!auth.currentUser) {
+        console.error("No user logged in");
+        return;
+      }
+      
+      const idToken = await auth.currentUser.getIdToken(true);
+      console.log("Got ID token, length:", idToken.length);
+      
+      const result = await userService.registerUser(idToken, {
+        displayName: auth.currentUser.displayName || auth.currentUser.email.split('@')[0]
+      });
+      
+      console.log("Registration result:", result);
+      return result;
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
+    }
+  };
+}
 
 const AuthContext = createContext();
 
