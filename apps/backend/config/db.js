@@ -5,12 +5,17 @@ require('dotenv').config();
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  console.error('MONGODB_URI environment variable is not set');
-  process.exit(1);
+  console.error('MONGODB_URI environment variable is not set - DB connections will fail');
+  // Continue without exiting
 }
 
 // Connect to MongoDB
 const connectDB = async () => {
+  if (!MONGODB_URI) {
+    console.error('Cannot connect to MongoDB: MONGODB_URI is not set');
+    return Promise.resolve(null); // Return resolved promise to allow app to continue
+  }
+  
   try {
     // Log connection string (with password redacted)
     const connectionString = process.env.MONGODB_URI || '';
@@ -32,7 +37,7 @@ const connectDB = async () => {
     console.error(`- Code: ${err.code || 'N/A'}`);
     
     // Continue without db connection
-    return Promise.reject(err);
+    return Promise.resolve(null); // Return resolved promise to allow app to continue
   }
 };
 
@@ -51,8 +56,10 @@ mongoose.connection.on('disconnected', () => {
 
 // Gracefully close the connection when the app terminates
 process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  console.log('Mongoose disconnected through app termination');
+  if (mongoose.connection.readyState) {
+    await mongoose.connection.close();
+    console.log('Mongoose disconnected through app termination');
+  }
   process.exit(0);
 });
 

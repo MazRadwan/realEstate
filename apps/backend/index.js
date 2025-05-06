@@ -88,6 +88,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Root route - basic response to show the server is running
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Backend API is running',
+    version: '1.0',
+    timestamp: new Date()
+  });
+});
+
 // Protected route example
 app.get('/api/protected', authMiddleware, (req, res) => {
   res.json({ 
