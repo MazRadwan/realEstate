@@ -7,7 +7,9 @@ const router = express.Router();
 // Register a new user
 router.post('/register', async (req, res) => {
   // DEBUG: Log incoming registration request
-  console.log('DEBUG: Registration request received with headers:', req.headers);
+  console.log('DEBUG: Registration request received');
+  console.log('DEBUG: Authorization header present:', !!req.headers.authorization);
+  
   try {
     // Verify the Firebase token
     const token = req.headers.authorization?.split('Bearer ')[1];
@@ -15,30 +17,61 @@ router.post('/register', async (req, res) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const { uid, email, name, picture } = decodedToken;
+    console.log('DEBUG: Token extracted, verifying with Firebase...');
+    let decodedToken;
+    try {
+      decodedToken = await getAuth().verifyIdToken(token);
+      console.log('DEBUG: Token verified successfully');
+    } catch (firebaseError) {
+      console.error('Firebase auth error:', firebaseError);
+      return res.status(401).json({ error: 'Invalid Firebase token', details: firebaseError.message });
+    }
+    
+    const { uid, email } = decodedToken;
+    console.log(`DEBUG: Processing registration for Firebase UID: ${uid}, email: ${email}`);
 
     // Check if user already exists
-    let user = await User.findOne({ firebaseUid: uid });
-    
-    if (user) {
-      return res.status(400).json({ error: 'User already exists' });
+    let user;
+    try {
+      user = await User.findOne({ firebaseUid: uid });
+      console.log('DEBUG: User existence check completed');
+      
+      if (user) {
+        console.log('DEBUG: User already exists in MongoDB');
+        return res.status(400).json({ error: 'User already exists' });
+      }
+    } catch (dbError) {
+      console.error('MongoDB lookup error:', dbError);
+      return res.status(500).json({ error: 'Database error during user lookup', details: dbError.message });
     }
 
+    console.log('DEBUG: Creating new user in MongoDB');
     // Create new user in MongoDB
-    user = new User({
-      firebaseUid: uid,
-      email,
-      displayName: name || req.body.displayName,
-      photoURL: picture || req.body.photoURL,
-      phoneNumber: req.body.phoneNumber
-    });
+    try {
+      user = new User({
+        firebaseUid: uid,
+        email,
+        displayName: decodedToken.name || req.body.displayName || email.split('@')[0],
+        photoURL: decodedToken.picture || req.body.photoURL
+      });
 
-    await user.save();
-    res.status(201).json(user);
+      await user.save();
+      console.log('DEBUG: User saved successfully');
+      res.status(201).json(user);
+    } catch (saveError) {
+      console.error('MongoDB save error:', saveError);
+      return res.status(500).json({ 
+        error: 'Error saving user to database', 
+        details: saveError.message,
+        validationErrors: saveError.errors ? Object.keys(saveError.errors).map(key => ({
+          field: key,
+          message: saveError.errors[key].message
+        })) : null
+      });
+    }
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Error registering user' });
+    console.error('Unexpected registration error:', error);
+    res.status(500).json({ error: 'Error registering user', details: error.message });
   }
 });
 
