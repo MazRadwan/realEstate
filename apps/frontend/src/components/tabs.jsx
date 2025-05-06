@@ -2,24 +2,24 @@ import { useState, useEffect } from 'react';
 import Card from './card';
 import { useProperty } from '../contexts/PropertyContext';
 import { useRouter } from 'next/router';
+import { useAuth } from '../contexts/AuthContext';
 
 // Tab components now use real property data
-const PropertyCardComponent = ({ propertyType = null }) => {
+const PropertyCardComponent = ({ propertyType = null, currentUser }) => {
   // Use the useProperty hook instead of direct context
   const { dbProperties, loading, fetchPropertiesByType, error } = useProperty();
   const router = useRouter();
   
   // Add console logs to debug
   useEffect(() => {
-    console.log('PropertyCardComponent mounting with type:', propertyType);
-    
+    console.log('PropertyCardComponent mounting with type:', propertyType, 'currentUser:', currentUser?.uid);
     // Pass the property type to fetch only that type
     if (propertyType) {
       fetchPropertiesByType(propertyType);
     } else {
       fetchPropertiesByType();
     }
-  }, [fetchPropertiesByType, propertyType]);
+  }, [fetchPropertiesByType, propertyType, currentUser]);
 
   // Log what we got back
   useEffect(() => {
@@ -54,18 +54,19 @@ const PropertyCardComponent = ({ propertyType = null }) => {
   );
 };
 
-// Define tabs with propertyType values that EXACTLY match the database values
-const tabs = [
-  { label: 'Home', content: <PropertyCardComponent propertyType="Home" /> },
-  { label: 'Apartment', content: <PropertyCardComponent propertyType="Apartment" /> },
-  { label: 'Office', content: <PropertyCardComponent propertyType="Office" /> },
-  { label: 'Warehouse', content: <PropertyCardComponent propertyType="Warehouse" /> },
-  { label: 'Parking', content: <PropertyCardComponent propertyType="Parking" /> },
-  { label: 'Commercial', content: <PropertyCardComponent propertyType="Commercial" /> },
-];
-
 const Tabs = () => {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const { currentUser } = useAuth();
+
+  // Define tabs with propertyType values that EXACTLY match the database values
+  const tabs = [
+    { label: 'Home', propertyType: 'Home' },
+    { label: 'Apartment', propertyType: 'Apartment' },
+    { label: 'Office', propertyType: 'Office' },
+    { label: 'Warehouse', propertyType: 'Warehouse' },
+    { label: 'Parking', propertyType: 'Parking' },
+    { label: 'Commercial', propertyType: 'Commercial' },
+  ];
 
   return (
     <div className="flex flex-col justify-center items-center">
@@ -86,7 +87,12 @@ const Tabs = () => {
           </button>
         ))}
       </div>
-      <div className="mt-4">{tabs[activeTabIndex].content}</div>
+      <div className="mt-4">
+        <PropertyCardComponent 
+          propertyType={tabs[activeTabIndex].propertyType} 
+          currentUser={currentUser} 
+        />
+      </div>
     </div>
   );
 };
