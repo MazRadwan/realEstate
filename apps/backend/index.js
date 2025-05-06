@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { initializeApp, cert } = require('firebase-admin/app');
 const connectDB = require('./config/db');
+const mongoose = require('mongoose');
 
 // Import middleware
 const { authMiddleware, requireAdmin } = require('./middleware/auth');
@@ -14,18 +15,13 @@ const propertyRoutes = require('./routes/properties');
 
 // Initialize Express
 const app = express();
-// Cloud Run environment variable for port, fallback to 8080
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 5001;
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Connect to MongoDB
 connectDB()
   .then(() => console.log('MongoDB connection initialized'))
-  .catch(err => {
-    console.error('MongoDB connection error details:', err);
-    // Continue starting the server even if DB fails
-    console.log('Continuing startup despite DB connection failure');
-  });
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware
 app.use(cors({
@@ -75,25 +71,36 @@ app.use('/api/auth', authRoutes);
 console.log('DEBUG: Mounted auth routes at /api/auth');
 
 // Health check route
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  let mongoStatus = 'unknown';
+  
+  // Test MongoDB connection
+  try {
+    if (mongoose.connection.readyState === 1) {
+      mongoStatus = 'connected';
+      // Try a simple query to validate access
+      await mongoose.connection.db.admin().ping();
+    } else {
+      mongoStatus = `disconnected (readyState: ${mongoose.connection.readyState})`;
+    }
+  } catch (err) {
+    console.error('MongoDB health check error:', err);
+    mongoStatus = `error: ${err.message}`;
+  }
+  
   res.status(200).json({ 
     status: 'ok', 
     timestamp: new Date(), 
     mode: isDevelopment ? 'development' : 'production',
     services: {
-      mongodb: 'connected',
+      mongodb: mongoStatus,
       mapbox: process.env.MAPBOX_API_KEY ? 'configured' : 'missing',
       firebase: process.env.FIREBASE_SERVICE_ACCOUNT ? 'configured' : 'missing'
+    },
+    env: {
+      mongodb_uri_set: !!process.env.MONGODB_URI,
+      node_env: process.env.NODE_ENV || 'not set'
     }
-  });
-});
-
-// Root route - basic response to show the server is running
-app.get('/', (req, res) => {
-  res.status(200).json({
-    message: 'Backend API is running',
-    version: '1.0',
-    timestamp: new Date()
   });
 });
 
