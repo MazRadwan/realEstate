@@ -38,8 +38,8 @@ export default function SignupForm({ onSuccess }) {
       // Register the user in MongoDB via the backend API
       await userService.registerUser(idToken, { displayName: data.name });
       
-      toast.success('Account created successfully!');
-      if (onSuccess) onSuccess();
+      // Force a full reload to ensure providers/hooks re-initialize
+      window.location.replace('/');
     } catch (error) {
       console.error('Signup error:', error);
       toast.error(error.message || 'Failed to create account');
@@ -70,11 +70,8 @@ export default function SignupForm({ onSuccess }) {
         }
       }
       
-      toast.success('Signed up with Google successfully!', { 
-        position: "bottom-right",
-        autoClose: 3000
-      });
-      if (onSuccess) onSuccess();
+      // Force a full reload to ensure providers/hooks re-initialize
+      window.location.replace('/');
     } catch (error) {
       console.error('Google sign-in error:', error);
       toast.error(error.message || 'Failed to sign up with Google', {
