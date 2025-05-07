@@ -2,9 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Specify target for better Netlify compatibility
-  target: 'serverless',
-  
   // Configure image domains for external images
   images: {
     domains: [
@@ -30,14 +27,12 @@ const nextConfig = {
       return [
         {
           source: '/api/:path*',
-          destination: 'http://localhost:5001/api/:path*' // Proxy to backend in development
-        }
+          destination: 'http://localhost:5001/api/:path*',
+        },
       ];
     }
-    
-    // In production, don't rewrite API calls - let them go directly to the backend URL
     return [];
-  }
-}
+  },
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig; 

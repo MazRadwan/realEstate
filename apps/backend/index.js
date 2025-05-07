@@ -27,7 +27,6 @@ connectDB()
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://constructor-real-estate.netlify.app',
     'https://real-estate-frontend-jet.vercel.app'
   ],
   credentials: true
